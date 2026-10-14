@@ -16,7 +16,7 @@ The extension never touches your Google account or Leaf Calendar's database. It 
 
 1. Turn on **Settings › Connected apps › Allow other apps to connect** in Leaf Calendar.
 2. Run any Leaf Calendar command in Raycast.
-3. Leaf Calendar asks whether Raycast can connect. Choose **Allow**.
+3. Raycast shows a **Sign in with Leaf Calendar** screen. Press `Enter`, and Leaf Calendar asks whether Raycast can connect. Choose **Allow**. Raycast says you're signed in and takes you back to the command.
 
 That's it! Leaf Calendar lists Raycast under **Settings › Connected apps**. Remove it there to cut it off.
 

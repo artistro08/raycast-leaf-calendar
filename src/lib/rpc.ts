@@ -1,8 +1,6 @@
 import net from "node:net";
 import type { HelloParams, Method, Methods } from "./types";
 
-// The first request waits for the approval window (up to 60 s in Leaf Calendar)
-const APPROVAL_TIMEOUT_MS = 75_000;
 const REQUEST_TIMEOUT_MS = 30_000;
 
 /**
@@ -19,10 +17,13 @@ export class LeafError extends Error {
   }
 }
 
+/** Sends `leaf.hello` with these params and resolves with Leaf Calendar's answer. */
+export type SendHello = (params: HelloParams) => Promise<unknown>;
+
 export type LeafClientOptions = {
   path: string;
-  hello: HelloParams;
-  approvalTimeoutMs?: number;
+  /** Sends the hello itself, so it can sign in when Leaf Calendar answers `approval_needed`. */
+  hello: (send: SendHello) => Promise<unknown>;
   timeoutMs?: number;
 };
 
@@ -33,14 +34,6 @@ type RpcError = { code: number; message: string; data?: { code?: string } };
 /** Leaf Calendar's pipe for a Windows user: `leaf-calendar-<user>`, lowercase. */
 export function pipePath(username: string): string {
   return `\\\\.\\pipe\\leaf-calendar-${username.toLowerCase()}`;
-}
-
-/**
- * Where Leaf Calendar sends the person after they choose Allow. Leaf Calendar opens this link, which launches the command, so a no-view
- * command (whose launch is its action, like joining a meeting) goes to My Agenda instead of running twice.
- */
-export function returnUrl(owner: string, extension: string, command: string, mode: string): string {
-  return `raycast://extensions/${owner}/${extension}/${mode === "no-view" ? "agenda" : command}`;
 }
 
 /**
@@ -93,7 +86,7 @@ export class LeafClient {
     socket.on("close", () => this.dropped(socket));
     this.socket = socket;
 
-    await this.send("leaf.hello", this.options.hello, this.options.approvalTimeoutMs ?? APPROVAL_TIMEOUT_MS);
+    await this.options.hello((params) => this.send("leaf.hello", params, this.options.timeoutMs ?? REQUEST_TIMEOUT_MS));
   }
 
   private send(method: string, params: object, timeoutMs: number): Promise<unknown> {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { LeafClient, LeafError, pipePath, returnUrl } from "../src/lib/rpc";
+import { LeafClient, LeafError, pipePath } from "../src/lib/rpc";
 import { HELLO, RpcFailure, SILENT, startFakeLeaf, type FakeLeaf } from "./fake-leaf";
 
 const hello = { client: "Raycast", icon: "iVBORw0KGgo=", returnUrl: "raycast://extensions/me/leaf-calendar/agenda" };
@@ -16,7 +16,7 @@ afterEach(async () => {
 
 async function connect(handlers: Parameters<typeof startFakeLeaf>[0], timeouts = {}) {
   leaf = await startFakeLeaf({ "leaf.hello": () => HELLO, ...handlers });
-  client = new LeafClient({ path: leaf.path, hello, ...timeouts });
+  client = new LeafClient({ path: leaf.path, hello: (send) => send(hello), ...timeouts });
   return { leaf, client };
 }
 
@@ -26,21 +26,34 @@ describe("pipePath", () => {
   });
 });
 
-describe("returnUrl", () => {
-  it("sends a view command back to itself", () => {
-    expect(returnUrl("artistro08", "leaf-calendar", "scheduling-links", "view")).toBe(
-      "raycast://extensions/artistro08/leaf-calendar/scheduling-links",
-    );
-  });
-
-  it("sends a no-view command to My Agenda, since Leaf Calendar opens the link after Allow and would run it again", () => {
-    expect(returnUrl("artistro08", "leaf-calendar", "join-next-meeting", "no-view")).toBe(
-      "raycast://extensions/artistro08/leaf-calendar/agenda",
-    );
-  });
-});
-
 describe("LeafClient", () => {
+  it("lets a hello function say hello again on the same connection after approval_needed", async () => {
+    let allowed = false;
+    leaf = await startFakeLeaf({
+      "leaf.hello": () => {
+        if (!allowed) {
+          allowed = true;
+          throw new RpcFailure(-32000, "Open the connect link.", "approval_needed");
+        }
+
+        return HELLO;
+      },
+      "calendars.list": () => [],
+    });
+    client = new LeafClient({
+      path: leaf.path,
+      hello: async (send) => {
+        const first = await send({ ...hello, askOnLink: "0123456789abcdef0123456789abcdef" }).catch((e) => e);
+        expect(first).toMatchObject({ code: "approval_needed" });
+        return send(hello);
+      },
+    });
+
+    await client.call("calendars.list");
+
+    expect(leaf.received.map((r) => r.method)).toEqual(["leaf.hello", "leaf.hello", "calendars.list"]);
+  });
+
   it("sends leaf.hello with the icon and return link before the first call", async () => {
     const { leaf, client } = await connect({ "calendars.list": () => [] });
 
@@ -163,7 +176,7 @@ describe("LeafClient", () => {
   });
 
   it("fails with not_running when there's no pipe", async () => {
-    client = new LeafClient({ path: "\\\\.\\pipe\\leaf-calendar-nobody-here", hello });
+    client = new LeafClient({ path: "\\\\.\\pipe\\leaf-calendar-nobody-here", hello: (send) => send(hello) });
 
     await expect(client.call("calendars.list")).rejects.toMatchObject({ code: "not_running" });
   });
@@ -172,14 +185,6 @@ describe("LeafClient", () => {
     const { client } = await connect({ "calendars.list": () => SILENT }, { timeoutMs: 50 });
 
     await expect(client.call("calendars.list")).rejects.toMatchObject({ code: "timeout" });
-  });
-
-  it("waits longer for the first answer, while the approval window is open", async () => {
-    const { client } = await connect({ "leaf.hello": () => SILENT }, { approvalTimeoutMs: 80, timeoutMs: 10 });
-    const started = Date.now();
-
-    await expect(client.call("calendars.list")).rejects.toMatchObject({ code: "timeout" });
-    expect(Date.now() - started).toBeGreaterThanOrEqual(70);
   });
 
   it("fails what's waiting when Leaf Calendar closes the connection, then reconnects", async () => {

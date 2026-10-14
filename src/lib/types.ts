@@ -2,7 +2,7 @@
 
 export type Response = "accepted" | "tentative" | "declined" | "needsAction";
 
-export type HelloParams = { client: string; icon?: string; returnUrl?: string };
+export type HelloParams = { client: string; icon?: string; returnUrl?: string; askOnLink?: string };
 export type HelloResult = { leafVersion: string; apiVersion: number; profile: string };
 
 export type Calendar = {
