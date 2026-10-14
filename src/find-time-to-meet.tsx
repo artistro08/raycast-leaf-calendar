@@ -89,7 +89,7 @@ export default function FindTimeToMeet() {
   );
 
   // Slots, With Your Custom Times Among Them
-  const slot = link ? link.minutes : Number(slotMinutes ?? "30");
+  const slot = link ? link.minutes : Number(slotMinutes);
   const customKeys = custom.map(keyOf);
   const times = [...custom, ...(free.data ?? []).flatMap((time) => slotsOf(time, slot))]
     .filter((time, i, all) => all.findIndex((other) => keyOf(other) === keyOf(time)) === i)

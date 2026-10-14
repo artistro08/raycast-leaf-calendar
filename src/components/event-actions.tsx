@@ -135,7 +135,13 @@ export default function EventActions({ event, day, calendar, onChange, showingDe
             shortcut={Keyboard.Shortcut.Common.Copy}
           />
         )}
-        <Action.CopyToClipboard title="Copy Title" content={event.title} shortcut={Keyboard.Shortcut.Common.CopyName} />
+        {event.title && (
+          <Action.CopyToClipboard
+            title="Copy Title"
+            content={event.title}
+            shortcut={Keyboard.Shortcut.Common.CopyName}
+          />
+        )}
         <Action
           title={showingDetail ? "Hide Details" : "Show Details"}
           icon={Icon.Sidebar}

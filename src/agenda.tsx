@@ -12,7 +12,7 @@ const ALL = "all";
 
 /** Your events from today on, by day, filtered by calendar. */
 export default function Agenda() {
-  const days = Number(getPreferenceValues<Preferences.Agenda>().daysAhead ?? "7");
+  const days = Number(getPreferenceValues<Preferences.Agenda>().daysAhead);
   const [calendarId, setCalendarId] = useState(ALL);
 
   // Calendars And Events
