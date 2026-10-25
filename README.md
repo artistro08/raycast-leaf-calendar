@@ -1,6 +1,8 @@
 # Leaf Calendar
 
-See your agenda, join meetings, create and move events, and share booking times through [Leaf Calendar](https://github.com/artistro08/leaf-calendar), right from Raycast.
+A raycast extension to access Leaf Calendar with your raycast workflow.
+
+You can see your agenda, setup scheduling links, and schedule events. You can also see all your calendars in one place
 
 ## Introduction
 
